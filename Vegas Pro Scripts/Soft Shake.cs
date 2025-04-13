@@ -1,5 +1,5 @@
 /**
- * FloatingEffect.cs
+ * Soft Shake.cs
  *
  * This script applies a floating motion effect to video events by
  * adding random offsets to their VideoMotion keyframes.
@@ -32,6 +32,8 @@ public class EntryPoint
 
         double keyframeInterval = dlg.KeyframeInterval;  // seconds between keyframes
         double offsetRange = dlg.OffsetRange;            // maximum offset in pixels
+        VideoKeyframeType selectedType = dlg.SelectedKeyframeType; // user-selected keyframe type
+        float smoothness = dlg.Smoothness;               // keyframe smoothness value
 
         Random random = new Random();
         
@@ -62,10 +64,15 @@ public class EntryPoint
             }
             
             // Now apply random offsets to all keyframes,
-            // ensuring they are applied relative to the starting (default) state.
+            // Ensuring they are applied relative to the starting (default) state.
             for (int k = 0; k < videoEvent.VideoMotion.Keyframes.Count; k++)
             {
                 VideoMotionKeyframe keyframe = videoEvent.VideoMotion.Keyframes[k];
+
+                // Set Keyframe Type
+                keyframe.Type = selectedType;
+                // Set Keyframe Smoothness
+                keyframe.Smoothness = smoothness;
 
                 // Generate random offsets (X and Y) within [-offsetRange, offsetRange].
                 double offsetX = (random.NextDouble() * 2 - 1) * offsetRange;
@@ -112,25 +119,27 @@ public class EntryPoint
     }
 }
 
-// --- ParameterForm: a simple Windows Forms dialog for user input ---
+// --- ParameterForm: A Windows Forms dialog for user input ---
 public class ParameterForm : Form
 {
     private NumericUpDown numInterval;
     private NumericUpDown numOffset;
+    private ComboBox cmbKeyframeType;
+    private NumericUpDown numSmooth;
     private Button okButton;
     private Button cancelButton;
-
+    
     public ParameterForm()
     {
-        // Set up form properties.
+        // Form settings.
         this.Text = "Floating Effect Settings";
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.StartPosition = FormStartPosition.CenterScreen;
-        this.ClientSize = new Size(280, 150);
+        this.ClientSize = new Size(340, 240);
         this.MaximizeBox = false;
         this.MinimizeBox = false;
         
-        // Create and add a label and numeric up-down for keyframe interval.
+        // Keyframe Interval label and control.
         Label lblInterval = new Label();
         lblInterval.Text = "Keyframe Interval (sec):";
         lblInterval.Location = new Point(10, 10);
@@ -141,13 +150,13 @@ public class ParameterForm : Form
         numInterval.DecimalPlaces = 2;
         numInterval.Minimum = 0.1M;
         numInterval.Maximum = 10;
-        numInterval.Value = 0.5M; // default value
+        numInterval.Value = 0.4M;
         numInterval.Increment = 0.1M;
         numInterval.Location = new Point(10, 30);
         numInterval.Width = 100;
         this.Controls.Add(numInterval);
         
-        // Create and add a label and numeric up-down for offset range.
+        // Offset Range label and control.
         Label lblOffset = new Label();
         lblOffset.Text = "Offset Range (pixels):";
         lblOffset.Location = new Point(10, 60);
@@ -163,19 +172,56 @@ public class ParameterForm : Form
         numOffset.Location = new Point(10, 80);
         numOffset.Width = 100;
         this.Controls.Add(numOffset);
+
+        // Keyframe Type label and ComboBox.
+        Label lblType = new Label();
+        lblType.Text = "Keyframe Type:";
+        lblType.Location = new Point(10, 110);
+        lblType.AutoSize = true;
+        this.Controls.Add(lblType);
         
-        // Create and add OK and Cancel buttons.
+        cmbKeyframeType = new ComboBox();
+        cmbKeyframeType.DropDownStyle = ComboBoxStyle.DropDownList;
+        cmbKeyframeType.Location = new Point(10, 130);
+        cmbKeyframeType.Width = 150;
+        cmbKeyframeType.Items.Add("Linear");
+        cmbKeyframeType.Items.Add("Hold");
+        cmbKeyframeType.Items.Add("Slow");
+        cmbKeyframeType.Items.Add("Fast");
+        cmbKeyframeType.Items.Add("Smooth");
+        cmbKeyframeType.Items.Add("Sharp");
+        cmbKeyframeType.SelectedIndex = 0; // default selection
+        this.Controls.Add(cmbKeyframeType);
+        
+        // Smoothness label and control.
+        Label lblSmooth = new Label();
+        lblSmooth.Text = "Smoothness (0.0 - 1.0):";
+        lblSmooth.Location = new Point(10, 160);
+        lblSmooth.AutoSize = true;
+        this.Controls.Add(lblSmooth);
+
+        numSmooth = new NumericUpDown();
+        numSmooth.DecimalPlaces = 2;
+        numSmooth.Minimum = 0.0M;
+        numSmooth.Maximum = 1.0M;
+        numSmooth.Value = 1.0M;
+        numSmooth.Increment = 0.05M;
+        numSmooth.Location = new Point(10, 180);
+        numSmooth.Width = 100;
+        this.Controls.Add(numSmooth);
+        
+        // OK and Cancel buttons.
         okButton = new Button();
         okButton.Text = "OK";
         okButton.DialogResult = DialogResult.OK;
-        okButton.Location = new Point(40, 110);
+        okButton.Location = new Point(60, 210);
         this.Controls.Add(okButton);
         this.AcceptButton = okButton;
 
         cancelButton = new Button();
         cancelButton.Text = "Cancel";
         cancelButton.DialogResult = DialogResult.Cancel;
-        cancelButton.Location = new Point(140, 110);
+        cancelButton.Location = new Point(180, 210);
         this.Controls.Add(cancelButton);
         this.CancelButton = cancelButton;
     }
@@ -188,5 +234,19 @@ public class ParameterForm : Form
     public double OffsetRange
     {
         get { return (double)numOffset.Value; }
+    }
+    
+    public VideoKeyframeType SelectedKeyframeType
+    {
+        get 
+        {
+            // Convert the selected string to a VideoKeyframeType enum value.
+            return (VideoKeyframeType)Enum.Parse(typeof(VideoKeyframeType), cmbKeyframeType.SelectedItem.ToString());
+        }
+    }
+
+    public float Smoothness
+    {
+        get { return (float)numSmooth.Value; }
     }
 }
